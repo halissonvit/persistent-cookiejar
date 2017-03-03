@@ -112,7 +112,9 @@ func newAtTime(o *Options, now time.Time) (*Jar, error) {
 	if err := jar.load(); err != nil {
 		return nil, errgo.Notef(err, "cannot load cookies")
 	}
-	jar.deleteExpired(now)
+
+	// TODO: make delete expired configurable
+	//jar.deleteExpired(now)
 	return jar, nil
 }
 
@@ -170,7 +172,8 @@ func id(domain, path, name string) string {
 // request to host/path. It is the caller's responsibility to check if the
 // cookie is expired.
 func (e *entry) shouldSend(https bool, host, path string) bool {
-	return e.domainMatch(host) && e.pathMatch(path) && (https || !e.Secure)
+	// TODO: make use of secure only configurable
+	return e.domainMatch(host) && e.pathMatch(path) //&& (https || !e.Secure)
 }
 
 // domainMatch implements "domain-match" of RFC 6265 section 5.1.3.
@@ -272,17 +275,19 @@ func (j *Jar) cookies(u *url.URL, now time.Time) (cookies []*http.Cookie) {
 
 	var selected []entry
 	for id, e := range submap {
-		if !e.Expires.After(now) {
-			// Save some space by deleting the value when the cookie
-			// expires. We can't delete the cookie itself because then
-			// we wouldn't know that the cookie had expired when
-			// we merge with another cookie jar.
-			if e.Value != "" {
-				e.Value = ""
-				submap[id] = e
-			}
-			continue
-		}
+
+		// TODO: make delete expired configurable
+		// if !e.Expires.After(now) {
+		// 	// Save some space by deleting the value when the cookie
+		// 	// expires. We can't delete the cookie itself because then
+		// 	// we wouldn't know that the cookie had expired when
+		// 	// we merge with another cookie jar.
+		// 	if e.Value != "" {
+		// 		e.Value = ""
+		// 		submap[id] = e
+		// 	}
+		// 	continue
+		// }
 		if !e.shouldSend(https, host, path) {
 			continue
 		}
@@ -314,10 +319,12 @@ func (j *Jar) allCookies(now time.Time) []*http.Cookie {
 	defer j.mu.Unlock()
 	for _, submap := range j.entries {
 		for _, e := range submap {
-			if !e.Expires.After(now) {
-				// Do not return expired cookies.
-				continue
-			}
+
+			// TODO: make delete expired configurable
+			//if !e.Expires.After(now) {
+			//	// Do not return expired cookies.
+			//	continue
+			//}
 			selected = append(selected, e)
 		}
 	}
@@ -589,6 +596,8 @@ func (j *Jar) newEntry(c *http.Cookie, now time.Time, defPath, host string) (e e
 		}
 	}
 
+	// TODO: make Persist all cookies configurable
+	e.Persistent = true
 	e.Value = c.Value
 	e.Secure = c.Secure
 	e.HttpOnly = c.HttpOnly
